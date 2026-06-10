@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Actualizar Pegado | TATA</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #090b0f;
+      color: #f6f7fb;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: min(760px, 100%);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 2rem;
+    }
+
+    p {
+      color: #aeb6c2;
+      line-height: 1.5;
+    }
+
+    input, button {
+      width: 100%;
+      min-height: 46px;
+      margin-top: 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.18);
+      padding: 10px 14px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    input {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+    }
+
+    button {
+      cursor: pointer;
+      background: linear-gradient(135deg, #b3202d, #ff4255);
+      color: white;
+      font-weight: 800;
+      border: 0;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .status, .meta {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.07);
+      color: #d9dee8;
+      white-space: pre-wrap;
+    }
+
+    .meta {
+      display: grid;
+      gap: 8px;
+      color: #aeb6c2;
+    }
+
+    .meta strong {
+      color: #f6f7fb;
+    }
+
+    .ok { color: #9ff0c5; }
+    .error { color: #ff9aa5; }
+    .warn { color: #ffd68c; }
+  </style>
+</head>
+
+<body>
+  <main class="card">
+    <h1>Actualizar Pegado</h1>
+
+    <p>
+      Selecciona el archivo <strong>DP060 - Detalle de Estilos.xlsx</strong>.
+      El sistema ignorará la primera fila, leerá los encabezados desde la segunda fila
+      y reemplazará la tabla <strong>pegado</strong> en Supabase.
+    </p>
+
+    <div class="meta">
+      <div>Última actualización: <strong id="ultimaActualizacion">Consultando...</strong></div>
+      <div>Últimos registros cargados: <strong id="ultimosRegistros">-</strong></div>
+    </div>
+
+    <input type="file" id="excelFile" accept=".xlsx,.xls" />
+
+    <button id="uploadBtn">
+      Actualizar Pegado
+    </button>
+
+    <div id="status" class="status">
+      Esperando archivo...
+    </div>
+  </main>
+
+  <script>
+    const SUPABASE_URL = "https://ezhlltgcqektrclgzhfi.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_QnmVt7kK6LTX6HqY3eJcUg_wTN-O6Hp";
+
+    const PROCESO = "PEGADO";
+    const TABLA_PEGADO = "pegado";
+    const TABLA_CONTROL = "control_actualizaciones";
+
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+    const fileInput = document.getElementById("excelFile");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const statusBox = document.getElementById("status");
+    const ultimaActualizacion = document.getElementById("ultimaActualizacion");
+    const ultimosRegistros = document.getElementById("ultimosRegistros");
+
+    function setStatus(message, type = "") {
+      statusBox.className = "status " + type;
+      statusBox.textContent = message;
+    }
+
+    function chunkArray(array, size) {
+      const chunks = [];
+
+      for (let i = 0; i < array.length; i += size) {
+        chunks.push(array.slice(i, i + size));
+      }
+
+      return chunks;
+    }
+
+    function cleanJsonValue(value) {
+      if (value === undefined) return null;
+      if (value instanceof Date) return value.toISOString();
+      if (typeof value === "number" && !Number.isFinite(value)) return null;
+      if (typeof value === "string") return value.trim();
+      return value;
+    }
+
+    function cleanRow(row) {
+      const cleaned = {};
+
+      Object.keys(row).forEach(key => {
+        const cleanKey = String(key).trim();
+        cleaned[cleanKey] = cleanJsonValue(row[key]);
+      });
+
+      return cleaned;
+    }
+
+    function rowHasData(row) {
+      return Object.values(row).some(value => {
+        if (value === null || value === undefined) return false;
+        if (typeof value === "string" && value.trim() === "") return false;
+        return true;
+      });
+    }
+
+    function formatDateGT(value) {
+      if (!value) return "Nunca";
+
+      return new Date(value).toLocaleString("es-GT", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    async function cargarUltimaActualizacion() {
+      try {
+        const { data, error } = await supabaseClient
+          .from(TABLA_CONTROL)
+          .select("fecha_actualizacion, registros")
+          .eq("proceso", PROCESO)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        ultimaActualizacion.textContent = formatDateGT(data?.fecha_actualizacion);
+        ultimosRegistros.textContent = data?.registros ?? "-";
+      } catch (error) {
+        ultimaActualizacion.textContent = "No disponible";
+        ultimosRegistros.textContent = "-";
+        console.warn("No se pudo consultar la última actualización:", error);
+      }
+    }
+
+    uploadBtn.addEventListener("click", async () => {
+      try {
+        const file = fileInput.files[0];
+
+        if (!file) {
+          setStatus("Selecciona primero el archivo Excel.", "warn");
+          return;
+        }
+
+        uploadBtn.disabled = true;
+        setStatus("Leyendo archivo Excel...");
+
+        const arrayBuffer = await file.arrayBuffer();
+
+        const workbook = XLSX.read(arrayBuffer, {
+          type: "array",
+          cellDates: true
+        });
+
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+
+        const rows = XLSX.utils.sheet_to_json(sheet, {
+          range: 1,
+          defval: null
+        });
+
+        if (!rows.length) {
+          throw new Error("No se encontraron datos. Revisa que el archivo tenga información desde la fila 3.");
+        }
+
+        setStatus(`Archivo leído correctamente.\nHoja: ${sheetName}\nFilas detectadas: ${rows.length}\nPreparando registros...`);
+
+        const registros = rows
+          .map(cleanRow)
+          .filter(rowHasData)
+          .map(row => ({
+            data: row
+          }));
+
+        if (!registros.length) {
+          throw new Error("No se generaron registros válidos para insertar.");
+        }
+
+        setStatus(`Registros preparados: ${registros.length}\nEliminando datos anteriores de la tabla pegado...`);
+
+        const { error: deleteError } = await supabaseClient
+          .from(TABLA_PEGADO)
+          .delete()
+          .neq("id", 0);
+
+        if (deleteError) {
+          throw deleteError;
+        }
+
+        const chunks = chunkArray(registros, 500);
+
+        for (let i = 0; i < chunks.length; i++) {
+          setStatus(
+            `Insertando datos en Supabase...\nBloque ${i + 1} de ${chunks.length}\nRegistros totales: ${registros.length}`
+          );
+
+          const { error: insertError } = await supabaseClient
+            .from(TABLA_PEGADO)
+            .insert(chunks[i]);
+
+          if (insertError) {
+            throw insertError;
+          }
+        }
+
+        const fechaActualizacion = new Date().toISOString();
+
+        const { error: controlError } = await supabaseClient
+          .from(TABLA_CONTROL)
+          .upsert({
+            proceso: PROCESO,
+            fecha_actualizacion: fechaActualizacion,
+            registros: registros.length
+          });
+
+        if (controlError) {
+          throw controlError;
+        }
+
+        ultimaActualizacion.textContent = formatDateGT(fechaActualizacion);
+        ultimosRegistros.textContent = registros.length;
+
+        setStatus(
+          `Actualización completada correctamente.\n\nRegistros cargados: ${registros.length}\nHoja procesada: ${sheetName}`,
+          "ok"
+        );
+
+      } catch (error) {
+        console.error(error);
+        setStatus(
+          "Error al actualizar Pegado:\n\n" + error.message,
+          "error"
+        );
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+
+    cargarUltimaActualizacion();
+  </script>
+</body>
+</html>
