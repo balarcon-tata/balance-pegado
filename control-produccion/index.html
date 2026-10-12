@@ -132,7 +132,7 @@ button,input,select{font:inherit}.app-shell{display:block;min-height:100vh}.side
           <span>Estado de trazabilidad</span>
           <select id="orderFilter">
             <option value="all">Todo</option>
-            <option value="no_scans">0 escaneos</option>
+            <option value="no_scans">Órdenes sin escaneo</option>
             <option value="started">En proceso</option>
           </select>
           <small>Clasifica las órdenes según su evidencia de escaneo.</small>
@@ -149,7 +149,7 @@ button,input,select{font:inherit}.app-shell{display:block;min-height:100vh}.side
           <div><span class="eyebrow">RESUMEN EJECUTIVO</span><h2>Estado semanal de Pegado</h2></div>
           <div class="legend"><span>Avance de líneas y ritmo de operarios al último corte de escaneos.</span></div>
         </div>
-        <div class="home-hero" id="homeKpis"></div>
+        <div class="home-hero" id="homeKpis"></div><div id="sourceDiagnostics" class="source-diagnostic"></div>
         <div class="home-grid">
           <section class="home-panel">
             <div class="home-panel-head"><div><span class="eyebrow">AVANCE POR LÍNEA</span><h3>Cumplimiento macro</h3><p>Programa semanal, producción oficial y carga de acople.</p></div></div>
@@ -1685,13 +1685,13 @@ function renderHome(rows){
   if(!state.data) return;
   const allRows=rows;
   const plan=allRows.reduce((a,r)=>a+n(r.totalPlanned),0);
-  const produced=allRows.reduce((a,r)=>a+n(r.officialTotal),0);
+  const produced=allRows.reduce((a,r)=>a+measuredProduction(r),0);
   const closed=allRows.filter(r=>r.status==='Cerrada'||r.status==='Cerrada sin escaneo').length;
   const inProcess=allRows.filter(r=>['En proceso','Atrasada','Fuera de secuencia','Producción sin escaneo'].includes(r.status)).length;
   const lineMetrics=state.data.meta.lines.map(line=>{
     const lr=allRows.filter(r=>r.line===line);
     const lp=lr.reduce((a,r)=>a+n(r.totalPlanned),0);
-    const lo=lr.reduce((a,r)=>a+n(r.officialTotal),0);
+    const lo=lr.reduce((a,r)=>a+measuredProduction(r),0);
     const lclosed=lr.filter(r=>r.status==='Cerrada'||r.status==='Cerrada sin escaneo').length;
     const lproc=lr.filter(r=>['En proceso','Atrasada','Fuera de secuencia','Producción sin escaneo'].includes(r.status)).length;
     const lno=lr.filter(r=>!r.scans.length).length;
@@ -1711,9 +1711,9 @@ function renderHome(rows){
   const lineRows=lineMetrics.map(x=>{
     const tone=x.pct>=85?'good':x.pct>=70?'warn':'bad';
     const capTone=x.capPct>100?'bad':x.capPct>=85?'warn':'good';
-    return `<tr><td><div class="home-line-name"><b>${esc(x.line)}</b><span>${x.orders} órdenes programadas</span></div></td><td><span class="home-main-num">${fmt.format(x.produced)} / ${fmt.format(x.plan)}</span><span class="home-sub">producción oficial / plan</span><div class="home-bar ${tone==='bad'?'bad':tone==='warn'?'warn':''}"><i style="width:${Math.max(0,Math.min(100,x.pct))}%"></i></div></td><td><span class="home-status ${tone}">${x.pct.toFixed(0)}%</span></td><td><span class="home-main-num">${x.closed}</span><span class="home-sub">cerradas</span></td><td><span class="home-main-num">${x.inProcess}</span><span class="home-sub">en proceso</span></td><td><span class="home-main-num">${x.noScan}</span><span class="home-sub">0 escaneos</span></td><td><span class="home-main-num">${fmt.format(x.acopleLoad)}</span><span class="home-sub">acoples plan. / cap. ${fmt.format(x.capacity)}</span>${x.capacity>0?`<div class="home-bar ${capTone==='bad'?'bad':capTone==='warn'?'warn':''}"><i style="width:${Math.max(0,Math.min(100,x.capPct))}%"></i></div><span class="home-sub">${x.capPct.toFixed(0)}% de capacidad</span>`:'<span class="home-sub">sin capacidad configurada</span>'}</td></tr>`;
+    return `<tr><td><div class="home-line-name"><b>${esc(x.line)}</b><span>${x.orders} órdenes programadas</span></div></td><td><span class="home-main-num">${fmt.format(x.produced)} / ${fmt.format(x.plan)}</span><span class="home-sub">producción oficial / plan</span><div class="home-bar ${tone==='bad'?'bad':tone==='warn'?'warn':''}"><i style="width:${Math.max(0,Math.min(100,x.pct))}%"></i></div></td><td><span class="home-status ${tone}">${x.pct.toFixed(0)}%</span></td><td><span class="home-main-num">${x.closed}</span><span class="home-sub">cerradas</span></td><td><span class="home-main-num">${x.inProcess}</span><span class="home-sub">en proceso</span></td><td><span class="home-main-num">${x.noScan}</span><span class="home-sub">órdenes sin escaneo</span></td><td><span class="home-main-num">${fmt.format(x.acopleLoad)}</span><span class="home-sub">acoples plan. / cap. ${fmt.format(x.capacity)}</span>${x.capacity>0?`<div class="home-bar ${capTone==='bad'?'bad':capTone==='warn'?'warn':''}"><i style="width:${Math.max(0,Math.min(100,x.capPct))}%"></i></div><span class="home-sub">${x.capPct.toFixed(0)}% de capacidad</span>`:'<span class="home-sub">sin capacidad configurada</span>'}</td></tr>`;
   }).join('');
-  $('homeLinesWrap').innerHTML=`<table class="home-line-table"><thead><tr><th>Línea</th><th>Avance semanal</th><th>Cumpl.</th><th>Cerradas</th><th>En proceso</th><th>0 escaneos</th><th>Carga acople</th></tr></thead><tbody>${lineRows}</tbody></table>`;
+  $('homeLinesWrap').innerHTML=`<table class="home-line-table"><thead><tr><th>Línea</th><th>Avance semanal</th><th>Cumpl.</th><th>Cerradas</th><th>En proceso</th><th>Órdenes sin escaneo</th><th>Carga acople</th></tr></thead><tbody>${lineRows}</tbody></table>`;
 
   const dates=state.data.meta.dates||[];
   const hoursPerDay=dates.length?Math.max(0,n(state.weeklyHours))/dates.length:0;
@@ -1815,7 +1815,7 @@ function initializeControls(){
   const first=m.dates[0], last=m.dates[m.dates.length-1];
   $('weekRange').textContent=`${shortDate(first)} – ${shortDate(last)}`;
   const max=new Date(m.maxScan);
-  $('freshness').innerHTML=`<i></i><div><b>Semana completa cargada</b><span>Programa ${shortDate(first)}–${shortDate(last)} · Escaneos hasta ${max.toLocaleString('es-GT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})}</span></div>`;
+  $('freshness').innerHTML=`<i></i><div><b>${m.programOrders && m.matchedOrders && m.progressMatchedOrders?'Fuentes completas y coincidentes':'Fuentes parciales · revisar diagnóstico'}</b><span>Programa ${shortDate(first)}–${shortDate(last)} · Escaneos hasta ${max.toLocaleString('es-GT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})}</span></div>`;
   $('cutoffNote').textContent=`Plan y avance: semana completa · Trazabilidad disponible hasta ${fmtDT(m.maxScan)}`;
   ensureCapacityConfig();
   renderCapacitySettings();
@@ -1843,7 +1843,7 @@ function buildRows(){
     const officialToDate=state.data.meta.dates.filter(d=>d<=selected).reduce((a,d)=>a+n(official?.daily?.[d]?.produced),0);
     const officialTotal=n(official?.totalProduced);
     const reportPlanToday=n(official?.daily?.[selected]?.plan); const reportPlanTotal=n(official?.totalPlan);
-    const planRef=state.view==='week'?n(o.totalPlanned):plannedToDate; const producedRef=state.view==='week'?officialTotal:officialToDate;
+    const planRef=state.view==='week'?n(o.totalPlanned):plannedToDate; const producedRef=hasUsableOfficialProgress()?(state.view==='week'?officialTotal:officialToDate):terminalQty;
     let status='Programada';
     if(planRef>0 && producedRef>=planRef) status=scans.length?'Cerrada':'Cerrada sin escaneo';
     else if(producedRef>0 && !scans.length) status='Producción sin escaneo';
@@ -1884,14 +1884,14 @@ function render(){
   if(!state.data) return;
   const rows=buildRows();
   const scopedRows=currentScopeRows(rows);
-  renderKPIs(scopedRows); renderSummary(scopedRows); renderLines(rows); renderOperatorBoard(rows); renderOrdersProgram(); renderStageProgram(); renderHome(rows); applySectionUI();
+  renderKPIs(scopedRows); renderSummary(scopedRows); renderLines(rows); renderOperatorBoard(rows); renderOrdersProgram(); renderStageProgram(); renderHome(rows); renderSourceDiagnostics(rows); applySectionUI();
   if(state.selectedOrder){ const match=rows.find(r=>r.norm===state.selectedOrder); if(match) renderDrawer(match); }
 }
 
 function renderKPIs(rows){
   const scheduled=rows;
   const plan=scheduled.reduce((a,r)=>a+(r.totalPlanned),0);
-  const produced=scheduled.reduce((a,r)=>a+r.officialTotal,0);
+  const produced=scheduled.reduce((a,r)=>a+measuredProduction(r),0);
   const closed=scheduled.filter(r=>r.status==='Cerrada' || r.status==='Cerrada sin escaneo').length;
   const inProcess=scheduled.filter(r=>['En proceso','Atrasada','Fuera de secuencia','Producción sin escaneo'].includes(r.status)).length;
   const noScan=scheduled.filter(r=>!r.scans.length).length;
