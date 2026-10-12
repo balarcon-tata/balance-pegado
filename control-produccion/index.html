@@ -79,6 +79,7 @@ button,input,select{font:inherit}.app-shell{display:block;min-height:100vh}.side
 
 
 .public-note{padding:11px 14px;background:#fff8e8;border:1px solid #f5db99;border-radius:10px;color:#76541d;margin:0 0 12px;font-size:12px}
+.source-diagnostic{margin:12px 0;padding:12px 16px;border-radius:12px;background:#eff7ff;border:1px solid #c9e1fb;color:#204e83;display:grid;gap:7px;font-size:12px}.source-diagnostic.warn{background:#fff7e8;border-color:#f4d49a;color:#8f5b11}.source-diagnostic b{font-size:13px}.source-metrics{display:flex;gap:10px 18px;flex-wrap:wrap}.source-diagnostic small{font-size:11px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -1702,7 +1703,7 @@ function renderHome(rows){
   });
   const linesAtRisk=lineMetrics.filter(x=>x.pct<70).length;
   $('homeKpis').innerHTML=[
-    ['Cumplimiento semanal',`${ratioPct(produced,plan).toFixed(0)}%`,`${fmt.format(produced)} / ${fmt.format(plan)} uds`],
+    [hasUsableOfficialProgress()?'Cumplimiento semanal':'Cumplimiento por escaneo final',`${ratioPct(produced,plan).toFixed(0)}%`,`${fmt.format(produced)} / ${fmt.format(plan)} uds`],
     ['Órdenes cerradas',closed,`${closed} de ${allRows.length} órdenes programadas`],
     ['Órdenes en proceso',inProcess,'con actividad o avance pendiente'],
     ['Líneas bajo 70%',linesAtRisk,linesAtRisk?'requieren atención':'sin líneas bajo el umbral']
@@ -1711,7 +1712,7 @@ function renderHome(rows){
   const lineRows=lineMetrics.map(x=>{
     const tone=x.pct>=85?'good':x.pct>=70?'warn':'bad';
     const capTone=x.capPct>100?'bad':x.capPct>=85?'warn':'good';
-    return `<tr><td><div class="home-line-name"><b>${esc(x.line)}</b><span>${x.orders} órdenes programadas</span></div></td><td><span class="home-main-num">${fmt.format(x.produced)} / ${fmt.format(x.plan)}</span><span class="home-sub">producción oficial / plan</span><div class="home-bar ${tone==='bad'?'bad':tone==='warn'?'warn':''}"><i style="width:${Math.max(0,Math.min(100,x.pct))}%"></i></div></td><td><span class="home-status ${tone}">${x.pct.toFixed(0)}%</span></td><td><span class="home-main-num">${x.closed}</span><span class="home-sub">cerradas</span></td><td><span class="home-main-num">${x.inProcess}</span><span class="home-sub">en proceso</span></td><td><span class="home-main-num">${x.noScan}</span><span class="home-sub">órdenes sin escaneo</span></td><td><span class="home-main-num">${fmt.format(x.acopleLoad)}</span><span class="home-sub">acoples plan. / cap. ${fmt.format(x.capacity)}</span>${x.capacity>0?`<div class="home-bar ${capTone==='bad'?'bad':capTone==='warn'?'warn':''}"><i style="width:${Math.max(0,Math.min(100,x.capPct))}%"></i></div><span class="home-sub">${x.capPct.toFixed(0)}% de capacidad</span>`:'<span class="home-sub">sin capacidad configurada</span>'}</td></tr>`;
+    return `<tr><td><div class="home-line-name"><b>${esc(x.line)}</b><span>${x.orders} órdenes programadas</span></div></td><td><span class="home-main-num">${fmt.format(x.produced)} / ${fmt.format(x.plan)}</span><span class="home-sub">${hasUsableOfficialProgress()?'producción oficial / plan':'Cuadre y Limpieza / plan'}</span><div class="home-bar ${tone==='bad'?'bad':tone==='warn'?'warn':''}"><i style="width:${Math.max(0,Math.min(100,x.pct))}%"></i></div></td><td><span class="home-status ${tone}">${x.pct.toFixed(0)}%</span></td><td><span class="home-main-num">${x.closed}</span><span class="home-sub">cerradas</span></td><td><span class="home-main-num">${x.inProcess}</span><span class="home-sub">en proceso</span></td><td><span class="home-main-num">${x.noScan}</span><span class="home-sub">órdenes sin escaneo</span></td><td><span class="home-main-num">${fmt.format(x.acopleLoad)}</span><span class="home-sub">acoples plan. / cap. ${fmt.format(x.capacity)}</span>${x.capacity>0?`<div class="home-bar ${capTone==='bad'?'bad':capTone==='warn'?'warn':''}"><i style="width:${Math.max(0,Math.min(100,x.capPct))}%"></i></div><span class="home-sub">${x.capPct.toFixed(0)}% de capacidad</span>`:'<span class="home-sub">sin capacidad configurada</span>'}</td></tr>`;
   }).join('');
   $('homeLinesWrap').innerHTML=`<table class="home-line-table"><thead><tr><th>Línea</th><th>Avance semanal</th><th>Cumpl.</th><th>Cerradas</th><th>En proceso</th><th>Órdenes sin escaneo</th><th>Carga acople</th></tr></thead><tbody>${lineRows}</tbody></table>`;
 
@@ -1880,6 +1881,28 @@ function currentScopeRows(rows,{respectSearch=false}={}){
   return scoped;
 }
 
+
+function hasUsableOfficialProgress(){ return !!(state.data && state.data.meta && state.data.meta.progressMatchedOrders>0); }
+function measuredProduction(row){ return hasUsableOfficialProgress()?n(row.officialTotal):n(row.terminalQty); }
+function renderSourceDiagnostics(rows){
+  const m=state.data.meta;
+  const mapped=rows.filter(r=>r.scans.length).length;
+  const events=rows.reduce((a,r)=>a+r.scans.length,0);
+  const noOfficial=!hasUsableOfficialProgress();
+  const noScans=m.pegadoScans<=0;
+  const noMatches=m.pegadoScans>0 && m.matchedOrders===0;
+  const note=noMatches?'El detalle tiene escaneos, pero sus números de orden no coinciden con el programa. Comprueba las fechas y las órdenes en ambos Excel.':noScans?'No hay registros de PEGADO en el archivo de escaneos; vuelve a cargarlo desde Configuración.':noOfficial?'Sin avance oficial coincidente. La producción mostrada utiliza solo los escaneos de CUADRE Y LIMPIEZA (operación final); los movimientos en otras estaciones cuentan como actividad.':'Programa, escaneos y avance oficial asociados correctamente.';
+  const el=document.getElementById('sourceDiagnostics');
+  el.className='source-diagnostic'+(noOfficial||noMatches||noScans?' warn':'');
+  el.innerHTML='<b>Diagnóstico de lectura de órdenes</b><div class="source-metrics">'
+  +'<span>Programa: <b>'+fmt.format(m.programOrders)+'</b> órdenes</span>'
+  +'<span>Órdenes con escaneos esta semana: <b>'+fmt.format(mapped)+'</b></span>'
+  +'<span>Escaneos asociados: <b>'+fmt.format(events)+'</b></span>'
+  +'<span>Órdenes con avance oficial: <b>'+fmt.format(m.progressMatchedOrders)+'</b></span>'
+  +'<span>Órdenes escaneadas fuera del programa: <b>'+fmt.format(m.unmatchedScanOrders)+'</b></span>'
+  +'</div><small>'+esc(note)+'</small>';
+}
+
 function render(){
   if(!state.data) return;
   const rows=buildRows();
@@ -1899,7 +1922,7 @@ function renderKPIs(rows){
   const outside=state.line ? 0 : n(state.data.progressOutsidePlan?.totalProduced);
   const cards=[
     ['Plan semanal',fmt.format(plan),state.line?'unidades de la línea':'unidades programadas','#333399'],
-    ['Producción oficial',fmt.format(produced),state.line?'avance oficial de la línea':'avance oficial semanal','#1ea96f'],
+    [hasUsableOfficialProgress()?'Producción oficial':'Salida por escaneo final',fmt.format(produced),hasUsableOfficialProgress()?'avance oficial semanal':'unidades en Cuadre y Limpieza','#1ea96f'],
     ['Cumplimiento',`${ratioPct(produced,plan).toFixed(0)}%`,'producción / programa','#16a6b6'],
     ['Cerradas',closed,'órdenes con plan cumplido','#1ea96f'],
     ['En proceso',inProcess,'órdenes con actividad','#e0a11b'],
@@ -1919,9 +1942,10 @@ function renderSummary(rows){
   const visibleOfficialOrders=rows.filter(r=>n(r.officialTotal)>0).length;
   const summaryCards = [
     {kicker:'Cobertura del programa', value:visibleProgramOrders, label:'órdenes visibles en programa', note: state.line ? `Filtro activo: ${state.line}` : 'Vista consolidada de todas las líneas', tone:'info'},
-    {kicker:'Cobertura de avance', value:visibleOfficialOrders, label:'órdenes con avance oficial', note:'Según el archivo de avance semanal', tone:'good'},
+    {kicker:'Cobertura de avance', value:visibleOfficialOrders, label:'órdenes con avance oficial', note:hasUsableOfficialProgress()?'Según el archivo de avance semanal':'Sin avance oficial coincidente', tone:hasUsableOfficialProgress()?'good':'warn'},
     {kicker:'Brecha de trazabilidad', value:`${gap>=0?'+':''}${fmt.format(gap)}`, label:'diferencia oficial vs. escaneo final', note: `Escaneo final acumulado: ${fmt.format(cuadreAtScanCut)} uds · Ajuste de plan ${m.planDifference>=0?'+':''}${fmt.format(m.planDifference)} uds`, tone: gap===0 ? 'good' : (Math.abs(gap)>=1000 ? 'danger' : 'warn')}
   ];
+  if(!hasUsableOfficialProgress()) summaryCards[2]={kicker:'Salida escaneada',value:fmt.format(cuadreAtScanCut),label:'uds en Cuadre y Limpieza',note:'No equivale a producción oficial; hay que importar un avance válido',tone:'warn'};
   $('summaryStrip').innerHTML = summaryCards.map(c=>`<article class="summary-item ${c.tone}"><span class="summary-kicker">${c.kicker}</span><strong class="summary-value">${c.value}</strong><span class="summary-label">${c.label}</span><small class="summary-note">${c.note}</small></article>`).join('');
 }
 
