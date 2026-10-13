@@ -12134,7 +12134,7 @@ if (document.readyState === 'loading') {
           ${activePlanHeaders.map(header => {
             const cell = `<td>${escapeHtml(record[header])}</td>`;
             return header === lineCol
-              ? `${cell}<td>${rowModuleSelectHtml(record)}</td><td class="acople-cell acople-count-cell ${sourceClass}"><input type="number" min="0" step="0.01" class="acople-manual-input" data-row-id="${escapeHtml(record.__rowId)}" value="${escapeHtml(formatAcopleInputValue(acopleInfo.value))}" title="${escapeHtml(title)}"></td>`
+              ? `${cell}<td>${rowModuleSelectHtml(record)}</td><td class="acople-cell acople-count-cell ${sourceClass}"><input type="number" min="0" step="0.01" class="acople-manual-input" data-row-id="${escapeHtml(record.__rowId)}" value="${escapeHtml(acopleInfo.source === "found" && acopleInfo.value === 0 ? "0" : formatAcopleInputValue(acopleInfo.value))}" title="${escapeHtml(title)}"></td>`
               : cell;
           }).join("")}
           ${planDateHeaders.map(header => {
