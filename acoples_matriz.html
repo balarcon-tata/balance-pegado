@@ -5,8 +5,8 @@
 </style></head><body>
 <h2>Acoples Galli y Laminadora</h2>
 <p>Matriz oficial por estilo. Los acoples semanales se calculan al multiplicar la cantidad por estilo por las unidades programadas del plan activo.</p>
-<div class="actions"><label class="btn">Actualizar matriz (.xlsx / .csv)<input type="file" id="matrixFile" accept=".xlsx,.xls,.csv"></label><button class="alt" id="reset">Restaurar matriz oficial</button><button class="alt" id="goPlan">Cargar proyección semanal en Plan</button></div>
-<div id="status">Cargando matriz oficial...</div>
+<div class="actions"><label class="btn">Cargar proyección semanal<input type="file" id="weekFile" accept=".xlsx,.xls,.xlsm,.csv"></label><label class="btn alt">Actualizar matriz oficial<input type="file" id="matrixFile" accept=".xlsx,.xls,.csv"></label><button class="alt" id="reset">Restaurar matriz oficial</button><button class="alt" id="goPlan">Ver plan detallado</button></div>
+<div id="status" role="status" aria-live="polite">Cargando matriz oficial...</div>
 <div class="kpis">
 <div class="kpi"><small>Estilos en matriz</small><strong id="matrixCount">—</strong></div>
 <div class="kpi"><small>Filas programadas</small><strong id="rowCount">—</strong></div>
@@ -37,7 +37,7 @@ function selectField(names){const match=headers.find(h=>names.some(n=>norm(h).in
 function render(){
  $("matrixCount").textContent=fmt(matriz.size);
  const lineField=selectField(["linea","línea","modulo"]),styleField=selectField(["estilo"]),orderField=selectField(["orden"]),totalField=selectField(["total planificado"]);
- const dateFields=headers.filter(h=>/^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}$/.test(String(h)) || /^(lunes|martes|miercoles|jueves|viernes|sabado|domingo)$/.test(norm(h)));
+ const dateFields=headers.filter(h=>/^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}$/.test(String(h)) || /^\d{4}[\/.-]\d{1,2}[\/.-]\d{1,2}$/.test(String(h)) || (Number(h)>40000&&Number(h)<80000) || /^(lunes|martes|miercoles|jueves|viernes|sabado|domingo)$/.test(norm(h)));
  const items=records.filter(r=>styleField&&key(r[styleField])).map(r=>{
  const style=key(r[styleField]),v=matriz.get(style),line=lineField?String(r[lineField]||""):"",order=orderField?String(r[orderField]||""):"";
  const units=dateFields.length?dateFields.reduce((sum,d)=>sum+number(r[d]),0):totalField?number(r[totalField]):0;
@@ -75,11 +75,20 @@ $("matrixFile").addEventListener("change",async e=>{
  }catch(err){$("status").textContent="Error al actualizar matriz: "+err.message}
 });
 $("reset").addEventListener("click",async()=>{try{localStorage.removeItem(STORAGE_KEY);matriz=await defaultMatrix();publish()}catch(e){$("status").textContent="No se pudo restaurar: "+e.message}});
+$("weekFile").addEventListener("change",event=>{
+ const file=event.target.files && event.target.files[0];
+ if(!file)return;
+ $("status").textContent="Importando proyección semanal: "+file.name+"..."; 
+ parent.postMessage({type:"ACOPLES_UPLOAD_PLAN",file},"*");
+ event.target.value="";
+});
 $("goPlan").addEventListener("click",()=>parent.postMessage({type:"ACOPLES_OPEN_PLAN"},"*"));
 ["search","statusFilter","lineFilter"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",render));
 window.addEventListener("message",event=>{
  if(event.origin!==location.origin||!event.data)return;
  if(event.data.type==="REQUEST_ACOPLES_GALLI"){publish();return;}
+ if(event.data.type==="ACOPLES_PLAN_ERROR"){$("status").textContent="Error al cargar proyección: "+String(event.data.error||"Revisa el archivo.");return;}
+ if(event.data.type==="ACOPLES_PLAN_SUCCESS"){$("status").textContent="Proyección cargada: "+String(event.data.file||"Excel")+". Recalculando acoples...";requestPlan();return;}
  if(event.data.type==="ACOPLES_PLAN"){
  const next=event.data||{};
  const sig=JSON.stringify([next.headers,next.rows]);
