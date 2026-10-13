@@ -11875,6 +11875,8 @@ if (document.readyState === 'loading') {
       const normalized = normalizeText(importantText);
 
       if (/\b(sub\s*total|subtotal|total general|grand total)\b/i.test(importantText)) return true;
+      // Las proyecciones de Pegado incluyen filas subtotal marcadas con "16".
+      if (lineCol && styleCol && /^\d{1,2}$/.test(String(record[lineCol] ?? "").trim()) && /^\d{1,2}$/.test(String(record[styleCol] ?? "").trim())) return true;
       if (lineCol && /\btotal\b/i.test(String(record[lineCol] ?? ""))) return true;
 
       const detailFields = [orderCol, styleCol, clientCol].filter(Boolean);
@@ -12746,11 +12748,38 @@ if (document.readyState === 'loading') {
       activePlanRows = extracted.records;
       clearManualAcopleOverrides();
       currentPlanFilter = "";
+      try {
+        localStorage.setItem("tata_balance_plan_manual_v1", JSON.stringify({ headers: activePlanHeaders, rows: activePlanRows, sheet: sheetName }));
+      } catch (err) { console.warn("No se pudo recordar la proyección semanal", err); }
       document.getElementById("planSearch").value = "";
       document.getElementById("planStatus").textContent = `Hoja cargada: ${sheetName}. Filas útiles detectadas: ${activePlanRows.length}. Subtotales excluidos automáticamente.`;
       renderLineAssignmentTable();
       requestAcoplesGalliMap();
       renderPlanTable();
+    }
+
+    function restorePlanFromBrowser() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem("tata_balance_plan_manual_v1") || "null");
+        if (!parsed || !Array.isArray(parsed.headers) || !Array.isArray(parsed.rows) || !parsed.rows.length) return false;
+        activePlanHeaders = parsed.headers;
+        activePlanRows = parsed.rows;
+        currentPlanFilter = "";
+        ["planSearch", "planClearBtn", "refreshAcoplesBtn", "exportPlanExcelBtn", "exportBalanceExcelBtn"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.disabled = false;
+        });
+        document.getElementById("planSheetSelect").innerHTML = '<option value="CACHE">Proyección guardada: ' + escapeHtml(parsed.sheet || "Semana") + '</option>';
+        document.getElementById("planSheetSelect").disabled = true;
+        document.getElementById("planStatus").textContent = 'Proyección semanal recuperada: ' + (parsed.sheet || "Semana") + '. ' + activePlanRows.length + ' filas útiles. Puedes importar otra semana cuando lo necesites.';
+        renderLineAssignmentTable();
+        requestAcoplesGalliMap();
+        renderPlanTable();
+        return true;
+      } catch (err) {
+        console.warn("No se pudo recuperar la proyección semanal", err);
+        return false;
+      }
     }
 
     function flattenSupabasePlanRow(row) {
@@ -13066,7 +13095,7 @@ if (document.readyState === 'loading') {
     inicializarRelojPegado();
     inicializarModoClaroPegado();
     renderAll();
-    cargarPlanLaminadoDesdeSupabase();
+    if (!restorePlanFromBrowser()) cargarPlanLaminadoDesdeSupabase();
   </script>
 <style id="pegado-final-visual-fixes">
 /* FIX FINAL DROPDOWN MODULOS - gana contra todos los estilos anteriores */
