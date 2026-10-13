@@ -80,6 +80,37 @@ button,input,select{font:inherit}.app-shell{display:block;min-height:100vh}.side
 
 .public-note{padding:11px 14px;background:#fff8e8;border:1px solid #f5db99;border-radius:10px;color:#76541d;margin:0 0 12px;font-size:12px}
 .source-diagnostic{margin:12px 0;padding:12px 16px;border-radius:12px;background:#eff7ff;border:1px solid #c9e1fb;color:#204e83;display:grid;gap:7px;font-size:12px}.source-diagnostic.warn{background:#fff7e8;border-color:#f4d49a;color:#8f5b11}.source-diagnostic b{font-size:13px}.source-metrics{display:flex;gap:10px 18px;flex-wrap:wrap}.source-diagnostic small{font-size:11px;line-height:1.5}
+
+/* Horales por operario - tabla diaria de escaneos */
+.operator-hourly-tools{display:flex;gap:12px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;margin:13px 0 10px;background:#fff;border:1px solid #dfe2ee;border-radius:14px;padding:13px 15px}
+.operator-hourly-title b{display:block;color:#252b55;font-size:14px}
+.operator-hourly-title small{display:block;color:#718297;font-size:10px;line-height:1.5;margin-top:3px}
+.operator-hourly-controls{display:flex;gap:9px;flex-wrap:wrap;align-items:end}
+.operator-hourly-controls label{display:flex;flex-direction:column;gap:5px;font-size:9px;font-weight:800;color:#63758c;letter-spacing:.03em;text-transform:uppercase}
+.operator-hourly-controls select,.operator-hourly-controls button{border:1px solid #dce3ed;border-radius:9px;padding:9px 10px;min-height:37px;background:#f8fafc;color:#263654;font-size:11px;font-weight:700;max-width:230px}
+.operator-hourly-controls button{cursor:pointer;background:#333399;color:#fff;border-color:#333399}
+.operator-hourly-help{color:#7e8f9f;font-size:10px;line-height:1.45;margin:0 0 10px;padding:0 3px}
+.operator-hourly-scroll{width:100%;max-height:570px;overflow:auto;background:#fff;border:1px solid #dfe2ee;border-radius:13px}
+.operator-hourly-table{border-collapse:separate;border-spacing:0;min-width:1310px;width:100%;font-size:10px;text-align:center;font-variant-numeric:tabular-nums}
+.operator-hourly-table th{position:sticky;top:0;z-index:3;background:#273d60;color:#fff;font-size:9px;padding:10px 7px;text-transform:uppercase;white-space:nowrap;border-right:1px solid rgba(255,255,255,.14)}
+.operator-hourly-table td{padding:8px 7px;border-bottom:1px solid #dce3ef;border-right:1px solid #e5eaf2;color:#233951;white-space:nowrap}
+.operator-hourly-table tbody tr:nth-child(odd) td{background:#f0f5fd}
+.operator-hourly-table tbody tr:hover td{background:#e5ecfb}
+.operator-hourly-table td.name{text-align:left;font-weight:750;min-width:130px;color:#168558}
+.operator-hourly-table td.op{text-align:left;min-width:155px;font-weight:700}
+.operator-hourly-table td.qty{font-weight:700}
+.operator-hourly-table td.total{background:#e4edf9!important;font-size:12px;font-weight:900;color:#193d72}
+.operator-hourly-table td.empty-scan{color:#b1bac8}
+.operator-hourly-table input.hourly-goal-input{width:62px;border:1px solid #c8d5e7;border-radius:6px;padding:5px;text-align:right;background:#fff;font-size:10px;font-weight:750;color:#23466c}
+.operator-hourly-table .hourly-state{font-size:9px;font-weight:900;white-space:nowrap}
+.operator-hourly-table .hourly-state.good{color:#138a52}
+.operator-hourly-table .hourly-state.bad{color:#d23e42}
+.operator-hourly-table .hourly-state.none{color:#627084}
+.operator-hourly-table .hourly-state.pending{color:#a46a0a}
+.operator-hourly-empty{border:1px dashed #cbd6e4;border-radius:14px;padding:26px;text-align:center;background:#fff;color:#6c7d90;font-size:12px}
+.operator-hourly-table td.breach-neg{color:#b83c45;font-weight:850}
+.operator-hourly-table td.breach-pos{color:#147f50;font-weight:850}
+@media(max-width:800px){.operator-hourly-tools{align-items:flex-start;flex-direction:column}.operator-hourly-controls{width:100%}.operator-hourly-controls label{flex:1}.operator-hourly-controls select{width:100%}}
 </style>
 </head>
 <body>
@@ -215,8 +246,8 @@ button,input,select{font:inherit}.app-shell{display:block;min-height:100vh}.side
 
       <section class="operator-board view-hidden" id="operatorBoardSection">
         <div class="section-heading">
-          <div><span class="eyebrow">TRAZABILIDAD DE OPERARIOS</span><h2>Órdenes por zona y operario</h2></div>
-          <div class="operator-view-note">Cada orden se desglosa por zona; dentro de cada zona se muestran los operarios, volumen escaneado y último movimiento.</div>
+          <div><span class="eyebrow">TRAZABILIDAD DE OPERARIOS</span><h2>Horales de producción por operario</h2></div>
+          <div class="operator-view-note">Visualiza la producción por cada hora, operación y colaborador; selecciona una zona del mapa para filtrar los horales.</div>
         </div>
         <div class="operator-heatmap-panel" id="operatorHeatmapPanel">
           <div class="operator-heatmap-head">
@@ -237,6 +268,15 @@ button,input,select{font:inherit}.app-shell{display:block;min-height:100vh}.side
           <div class="heatmap-note">Lectura del mapa: la escala rojo→verde representa el ritmo relativo registrado durante la última hora disponible. Las etiquetas de orden se colocan en la zona correspondiente a su último escaneo; al filtrar una línea solo se muestran sus estaciones y órdenes mapeadas.</div>
         </div>
         <div class="operator-kpis" id="operatorKpis"></div>
+        <div class="operator-hourly-tools">
+          <div class="operator-hourly-title"><b>Producción horaria por colaborador</b><small>Registro diario de escaneos · acumulados por línea y operación</small></div>
+          <div class="operator-hourly-controls">
+            <label>Día analizado<select id="operatorHourlyDate" aria-label="Día analizado"></select></label>
+            <label>Zona de trabajo<select id="operatorHourlyZone" aria-label="Zona de trabajo"></select></label>
+            <button type="button" id="exportOperatorHourly">⇩ Exportar Excel</button>
+          </div>
+        </div>
+        <div class="operator-hourly-help">Las metas iniciales de acople (300 u/h) y otras operaciones del ejemplo (600 u/h) son referencias editables, no metas oficiales. Cambia cada meta directamente en la tabla; queda guardada en este navegador. Horas registradas = horas con producción escaneada de 07:00 a 16:59; los escaneos compartidos entre varios operarios se distribuyen proporcionalmente.</div>
         <div class="operator-table-wrap" id="operatorTableWrap"></div>
       </section>
 
@@ -476,7 +516,7 @@ async function upload(kind,file){
   }catch(err){ console.error(err); toast('Error: '+err.message); alert('No se pudo cargar el archivo\n\n'+err.message); }
 }
 
-const state = { data:null, selectedDate:null, view:'week', search:'', line:'', orderFilter:'all', section:'home', selectedOrder:null, lineCapacity:{}, weeklyHours:44, styleAcoples:{} , heatMetric:'units', heatZone:'engomado' };
+const state = { data:null, selectedDate:null, view:'week', search:'', line:'', orderFilter:'all', section:'home', selectedOrder:null, lineCapacity:{}, weeklyHours:44, styleAcoples:{} , heatMetric:'units', heatZone:'engomado', hourlyZone:'all', hourlyDate:null, hourlyGoals:{} };
 const $ = id => document.getElementById(id);
 const fmt = new Intl.NumberFormat('es-GT', {maximumFractionDigits:0});
 const shortDate = d => new Date(d+'T12:00:00').toLocaleDateString('es-GT',{weekday:'short',day:'2-digit',month:'short'});
@@ -1629,7 +1669,7 @@ function renderOperatorHeatmap(orders){
   renderHeatmapLineOverlays(orders);
   drawHeatmapCanvas(pointsData);observeHeatmapResize(pointsData);
   $('heatmapLegend').innerHTML=Object.entries(heatmapZoneMeta).map(([key,m])=>`<button type="button" class="heatmap-zone-chip ${state.heatZone===key?'active':''}" data-heat-zone="${key}" style="--zone-color:${m.color}"><i></i>${esc(m.name)}</button>`).join('');
-  document.querySelectorAll('[data-heat-zone]').forEach(el=>el.addEventListener('click',()=>{state.heatZone=el.dataset.heatZone;renderOperatorHeatmap(orders);}));
+  document.querySelectorAll('[data-heat-zone]').forEach(el=>el.addEventListener('click',()=>{state.heatZone=el.dataset.heatZone;state.hourlyZone=state.heatZone;renderOperatorHeatmap(orders);renderOperatorHourlyTable();}));
   document.querySelectorAll('[data-heatmetric]').forEach(btn=>{btn.classList.toggle('active',btn.dataset.heatmetric===state.heatMetric);btn.onclick=()=>{state.heatMetric=btn.dataset.heatmetric;renderOperatorHeatmap(orders);};});
   let sel;
   if(state.line){
@@ -1647,40 +1687,166 @@ function renderOperatorHeatmap(orders){
   const toneForQty=qty=>{const rel=n(qty)/bestQty; return rel>=0.7?'good':rel<0.4?'low':'warn';};
   $('heatmapSide').innerHTML=`<div class="heatmap-side-title">Zona seleccionada${state.line?` · ${esc(state.line)}`:''}</div><h4>${esc(meta.name||sel.name)}</h4><div style="font-size:8px;color:#8392a1;margin:-7px 0 10px">${windowLabel}</div><div class="heatmap-side-kpis"><div class="heatmap-side-kpi"><span>Unidades / hora</span><b>${fmt.format(sel.units)}</b></div><div class="heatmap-side-kpi"><span>Capacidad / hora</span><b>${selectedCapacity>0?fmt.format(selectedCapacity):'Pendiente'}</b></div><div class="heatmap-side-kpi"><span>Utilización</span><b style="color:${selectedTone==='good'?'#168a57':selectedTone==='warn'?'#b37a00':selectedTone==='low'?'#cf3341':'#8291a0'}">${selectedUtil!=null?selectedUtil.toFixed(0)+'%':'—'}</b></div><div class="heatmap-side-kpi"><span>Operarios activos</span><b>${sel.operatorCount}</b></div><div class="heatmap-side-kpi"><span>Órdenes en la hora</span><b>${sel.orderCount}</b></div><div class="heatmap-side-kpi"><span>Estaciones visibles</span><b>${visibleStations}</b></div><div class="heatmap-side-kpi"><span>Último movimiento</span><b style="font-size:10px">${fmtDT(sel.latest)}</b></div><div class="heatmap-side-kpi"><span>Indicador</span><b style="font-size:10px">${state.heatMetric==='units'?'Ritmo vs capacidad':state.heatMetric==='operators'?'Operarios':'Órdenes'}</b></div></div><div class="heatmap-people"><div class="heatmap-people-title">Operarios con mayor ritmo en la hora</div>${people.length?people.map(p=>`<div class="heatmap-person ${toneForQty(p.qty)}"><div><b>${esc(p.name)}</b><span>${p.scans} escaneos · ${fmtDT(p.latest)}</span></div><strong>${fmt.format(p.qty)} uds/h</strong></div>`).join(''):'<div class="operator-zone-empty">Sin actividad durante esta hora para el filtro seleccionado.</div>'}</div>`;
 }
+function loadOperatorHourlyGoals(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('tata_control_produccion_operator_goals_v1')||'{}');
+    state.hourlyGoals=saved && typeof saved==='object' && !Array.isArray(saved)?saved:{};
+  }catch(err){state.hourlyGoals={};}
+}
+
+function hourlyGoalKey(line,operation){return line+'||'+operation.toUpperCase();}
+
+function operatorHourlyGoal(line,operation){
+  const key=hourlyGoalKey(line,operation);
+  if(Object.prototype.hasOwnProperty.call(state.hourlyGoals,key))return Math.max(0,n(state.hourlyGoals[key]));
+  const op=operation.toUpperCase();
+  // Referencias del ejemplo proporcionado por el usuario, no estándares oficiales.
+  if(/ACOPL/.test(op))return 300;
+  if(/RODAJ|DESVIR|CUADRE|LIMPIEZA/.test(op))return 600;
+  return 0;
+}
+
+function buildOperatorHourlyRows(){
+  if(!state.data)return [];
+  const dates=state.data.meta.dates||[];
+  if(!dates.length)return [];
+  const selected=state.hourlyDate||state.selectedDate||dates[0];
+  const first=dates[0],last=dates[dates.length-1];
+  const planByOrder=new Map(state.data.orders.map(o=>[o.norm,o]));
+  const data=new Map();
+  const raw=state.data.rawScansByOrder||state.data.scansByOrder||{};
+  for(const [norm,scans] of Object.entries(raw)){
+    const program=planByOrder.get(norm);
+    const progress=state.data.progressByOrder?.[norm];
+    const baseLine=program?.line||progress?.line||'Sin línea programada';
+    if(state.line&&baseLine!==state.line)continue;
+    for(const scan of scans||[]){
+      const day=dayKey(scan.dt);
+      if(!day||day<first||day>last)continue;
+      const operation=String(scan.operation||'Sin operación').trim()||'Sin operación';
+      const zone=zoneForOperation(operation).key;
+      if(state.hourlyZone!=='all'&&zone!==state.hourlyZone)continue;
+      const names=splitOperatorNames(scan.operator);
+      if(!names.length)names.push('Sin operario');
+      const code=names.length===1?String(scan.operatorCode||'').trim():'';
+      const amount=n(scan.qty)/names.length;
+      const hour=Number(String(scan.dt||'').slice(11,13));
+      const label=String(scan.location||'').trim()||baseLine;
+      for(const name of names){
+        const identity=code?'#'+code:name.toLocaleLowerCase('es');
+        const key=baseLine+'||'+label+'||'+operation.toUpperCase()+'||'+identity;
+        if(!data.has(key))data.set(key,{line:baseLine,lineLabel:label,operation,zone,name,code,orders:new Set(),hours:Array(10).fill(0),dailyScans:0,latest:null});
+        const item=data.get(key);
+        item.orders.add(norm);
+        if(day===selected&&hour>=7&&hour<=16){
+          item.hours[hour-7]+=amount;
+          item.dailyScans++;
+          if(!item.latest||String(scan.dt)>item.latest)item.latest=String(scan.dt);
+        }
+      }
+    }
+  }
+  const q=state.search.toLocaleLowerCase('es').trim();
+  const rankOp=name=>{
+    const idx=canonicalOps.findIndex(x=>x.toUpperCase()===name.toUpperCase());
+    return idx<0?999:idx;
+  };
+  return [...data.values()].filter(item=>{
+    if(!q)return true;
+    return [item.line,item.lineLabel,item.operation,item.name,item.code,...item.orders].join(' ').toLocaleLowerCase('es').includes(q);
+  }).sort((a,b)=>
+    (state.data.meta.lines.indexOf(a.line)===-1?999:state.data.meta.lines.indexOf(a.line))-(state.data.meta.lines.indexOf(b.line)===-1?999:state.data.meta.lines.indexOf(b.line))||
+    a.lineLabel.localeCompare(b.lineLabel,'es')||
+    rankOp(a.operation)-rankOp(b.operation)||
+    a.operation.localeCompare(b.operation,'es')||
+    a.name.localeCompare(b.name,'es')
+  );
+}
+
+function prepareOperatorHourlyControls(){
+  const dates=state.data?.meta?.dates||[];
+  const select=$('operatorHourlyDate');
+  if(!dates.includes(state.hourlyDate))state.hourlyDate=dates.includes(state.selectedDate)?state.selectedDate:dates[0];
+  select.innerHTML=dates.map(d=>`<option value="${esc(d)}">${esc(shortDate(d))}</option>`).join('');
+  select.value=state.hourlyDate||'';
+  const zones=$('operatorHourlyZone');
+  zones.innerHTML='<option value="all">Todas las zonas</option>'+zoneDefs.map(z=>`<option value="${z.key}">${esc(z.name)}</option>`).join('')+'<option value="otros">Otras operaciones</option>';
+  zones.value=state.hourlyZone;
+}
+
+function renderOperatorHourlyTable(){
+  if(!state.data)return;
+  prepareOperatorHourlyControls();
+  const rows=buildOperatorHourlyRows();
+  const panel=$('operatorTableWrap');
+  panel.className='operator-hourly-scroll';
+  const label=state.hourlyDate||'—';
+  if(!rows.length){
+    panel.innerHTML=`<div class="operator-hourly-empty">No se identificaron operarios con escaneos en esta semana para los filtros seleccionados.<br><small>Revisa el archivo «Detalle de escaneos», la línea y la zona.</small></div>`;
+    return;
+  }
+  const fmtQty=v=>Number(v).toLocaleString('es-GT',{maximumFractionDigits:2});
+  const hours=Array.from({length:10},(_,i)=>i+7);
+  const body=rows.map(item=>{
+    const total=item.hours.reduce((s,v)=>s+v,0);
+    const activeHours=item.hours.filter(v=>v>0).length;
+    const goal=operatorHourlyGoal(item.line,item.operation);
+    const expected=goal>0?goal*activeHours:0;
+    const percent=expected>0?100*total/expected:null;
+    const gap=expected>0?total-expected:null;
+    const status=!activeHours?['SIN DATOS','none']:!goal?['SIN META','pending']:total>=expected?['EN META','good']:['BAJO META','bad'];
+    const key=encodeURIComponent(hourlyGoalKey(item.line,item.operation));
+    const cells=item.hours.map(v=>`<td class="${v>0?'qty':'empty-scan'}">${v>0?fmtQty(v):''}</td>`).join('');
+    return `<tr>
+      <td title="${esc(item.line)}">${esc(item.lineLabel)}</td>
+      <td class="op" title="${esc(item.operation)}">${esc(item.operation)}</td>
+      <td>${esc(item.code||'—')}</td>
+      <td class="name">${esc(item.name)}</td>
+      <td><input class="hourly-goal-input" data-hourly-goal-key="${key}" type="number" min="0" step="1" value="${goal}" aria-label="Meta por hora para ${esc(item.operation)} en ${esc(item.line)}" title="Meta editable de esta operación por línea" /></td>
+      ${cells}<td class="total">${fmtQty(total)}</td>
+      <td>${expected>0?fmtQty(expected):'—'}</td>
+      <td>${percent!==null?percent.toFixed(1)+'%':'—'}</td>
+      <td class="${gap!==null?(gap<0?'breach-neg':'breach-pos'):''}">${gap!==null?fmtQty(gap):'—'}</td>
+      <td>${activeHours}</td>
+      <td><span class="hourly-state ${status[1]}">${status[0]}</span></td>
+    </tr>`;
+  }).join('');
+  panel.innerHTML=`<table class="operator-hourly-table"><thead><tr><th>Línea</th><th>Operación</th><th>Código</th><th>Colaborador</th><th>Meta / h</th>${hours.map(h=>`<th>${String(h).padStart(2,'0')}:00</th>`).join('')}<th>Total</th><th>Meta turno</th><th>Cumpl. %</th><th>Brecha</th><th>Horas reg.</th><th>Estado</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function exportOperatorHourlyExcel(){
+  if(!window.XLSX){toast('No se ha cargado el lector de Excel');return;}
+  const rows=buildOperatorHourlyRows();
+  if(!rows.length){toast('No hay operarios para exportar');return;}
+  const hours=Array.from({length:10},(_,i)=>i+7);
+  const data=[['Línea','Operación','Código','Colaborador','Meta / h',...hours.map(h=>String(h).padStart(2,'0')+':00'),'Total','Meta turno','Cumplimiento %','Brecha','Horas reg.','Estado']];
+  for(const r of rows){
+    const total=r.hours.reduce((s,v)=>s+v,0),active=r.hours.filter(v=>v>0).length,goal=operatorHourlyGoal(r.line,r.operation),expected=goal*active;
+    data.push([r.lineLabel,r.operation,r.code,r.name,goal,...r.hours,total,expected||'',expected?Math.round(total/expected*1000)/10:'',expected?total-expected:'',active,!active?'SIN DATOS':!goal?'SIN META':total>=expected?'EN META':'BAJO META']);
+  }
+  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:19},{wch:32},{wch:13},{wch:24},{wch:12},...hours.map(()=>({wch:10})),{wch:14},{wch:14},{wch:16},{wch:14},{wch:12},{wch:15}];
+  XLSX.utils.book_append_sheet(wb,ws,'Horales de operarios');
+  XLSX.writeFile(wb,'Horales_Operarios_'+(state.hourlyDate||'sin-fecha')+'.xlsx');
+  toast('Horales exportados');
+}
+
 function renderOperatorBoard(rows){
   const orders=buildOrderOperatorZones(rows);
   renderOperatorHeatmap(orders);
-  const operatorSet=new Set(); let zonesActive=0,totalScans=0;
-  for(const o of orders){
-    totalScans+=o.scans.length;
-    for(const z of o.zones){ if(z.progress>0)zonesActive++; for(const name of z.operators.keys())operatorSet.add(name); }
-  }
+  const hourRows=buildOperatorHourlyRows();
+  const withActivity=hourRows.filter(r=>r.hours.some(v=>v>0));
+  const total=withActivity.reduce((s,r)=>s+r.hours.reduce((a,b)=>a+b,0),0);
+  const ops=new Set(withActivity.map(r=>r.code||r.name));
+  const zones=new Set(withActivity.map(r=>r.zone));
   $('operatorKpis').innerHTML=[
-    ['Órdenes con actividad',orders.length,'con escaneos de PEGADO'],
-    ['Operarios identificados',operatorSet.size,'personas con trazabilidad'],
-    ['Zonas con actividad',zonesActive,'zonas con al menos un escaneo'],
-    ['Escaneos registrados',fmt.format(totalScans),'registros dentro de la semana']
+    ['Operarios con registro',ops.size,'personas con escaneos el día seleccionado'],
+    ['Unidades escaneadas',fmt.format(total),'07:00–16:59 · suma de operaciones'],
+    ['Operaciones activas',new Set(withActivity.map(r=>r.line+'||'+r.operation)).size,'operaciones con producción'],
+    ['Zonas activas',zones.size,'con escaneos dentro del filtro']
   ].map(c=>`<div class="operator-mini-card"><span>${c[0]}</span><b>${c[1]}</b><small>${c[2]}</small></div>`).join('');
-  if(!orders.length){
-    const first=state.data.meta.dates?.[0]||'—',last=state.data.meta.dates?.[state.data.meta.dates.length-1]||'—';
-    $('operatorTableWrap').innerHTML=`<div class="operator-empty"><b>No se encontraron órdenes con escaneos de PEGADO.</b><br><br>Semana del programa: ${first} a ${last}<br>Último escaneo disponible: ${fmtDT(state.data.meta.maxScan)}</div>`;return;
-  }
-  const cards=orders.map(o=>{
-    const plan=o.plan; const official=o.official; const officialPct=plan>0?ratioPct(official,plan):0;
-    const zoneHtml=o.zones.filter(z=>z.key!=='otros'||z.progress>0).map(z=>{
-      const pct=plan>0?ratioPct(z.progress,plan):0; const current=o.currentZone?.key===z.key; const bottle=o.bottleneckKey===z.key;
-      const people=[...z.operators.values()].sort((a,b)=>b.qty-a.qty).map(p=>{
-        const rec=operatorRecencyClass(p.latest); const ops=[...p.ops].join(', ');
-        return `<div class="operator-zone-person"><div class="operator-zone-person-head"><b><i class="operator-person-dot ${rec}"></i>${esc(p.name)}</b><strong>${fmt.format(p.qty)} uds</strong></div><span>${p.scanCount} escaneo${p.scanCount===1?'':'s'} · ${esc(ops||'Sin operación')}</span><span>Último: ${fmtDT(p.latest)}</span></div>`;
-      }).join('')||'<div class="operator-zone-empty">Sin escaneos en esta zona</div>';
-      return `<div class="operator-zone-col ${current?'current':''} ${bottle?'bottleneck':''}"><div class="operator-zone-head"><b>${esc(z.name)}</b><span class="operator-zone-progress">${fmt.format(z.progress)}${plan>0?` / ${fmt.format(plan)}`:''}</span></div>${plan>0?`<div class="operator-zone-bar"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`:''}${people}${current?'<span class="operator-zone-tag current">ZONA ACTUAL</span>':''}${bottle?`<span class="operator-zone-tag bottle">▼ caída ${fmt.format(o.bottleneckGap)} uds</span>`:''}</div>`;
-    }).join('');
-    return `<article class="operator-order-card"><header class="operator-order-head"><div class="operator-order-main"><span class="operator-order-seq">${o.row.sequence??'—'}</span><div class="operator-order-title"><b>${esc(o.row.order)}</b><span>${esc(o.row.style||'Sin estilo')}${o.row.client?` · ${esc(o.row.client)}`:''} · ${esc(o.row.line)}</span></div>${!o.matched?'<span class="operator-order-unmatched">FUERA DEL PROGRAMA</span>':''}</div><div class="operator-order-stats"><div class="operator-order-stat"><span>Plan semanal</span><b>${fmt.format(plan)} uds</b></div><div class="operator-order-stat"><span>Avance oficial</span><b>${fmt.format(official)} uds · ${officialPct.toFixed(0)}%</b></div><div class="operator-order-stat"><span>Último escaneo</span><b>${fmtDT(o.latest?.dt)}</b></div></div></header><div class="operator-zones-grid">${zoneHtml}</div></article>`;
-  }).join('');
-  $('operatorTableWrap').className='operator-order-list';
-  $('operatorTableWrap').innerHTML=cards;
+  renderOperatorHourlyTable();
 }
-
 
 function renderHome(rows){
   if(!state.data) return;
@@ -1810,6 +1976,8 @@ function initializeControls(){
   const maxDay=dayKey(m.maxScan);
   state.selectedDate = m.dates.includes(maxDay) ? maxDay : m.dates[m.dates.length-1];
   state.view='week';
+  state.hourlyDate = state.selectedDate;
+  state.hourlyZone = 'all';
   $('lineFilter').innerHTML='<option value="">Todas las líneas</option>'+m.lines.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join('');
   $('lineFilter').value=state.line;
   $('orderFilter').value=state.orderFilter;
@@ -2092,8 +2260,22 @@ $('closeZoneModal').addEventListener('click',closeZoneModal); $('zoneModalBackdr
 $('saveCapacityBtn').addEventListener('click',saveCapacitySettings);
 $('resetCapacityBtn').addEventListener('click',resetCapacitySettings);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeZoneModal(); closeDrawer(); closeSidebar(); } });
+$('operatorHourlyDate').addEventListener('change',e=>{state.hourlyDate=e.target.value;render();});
+$('operatorHourlyZone').addEventListener('change',e=>{state.hourlyZone=e.target.value;if(state.hourlyZone!=='all')state.heatZone=state.hourlyZone;render();});
+$('exportOperatorHourly').addEventListener('click',exportOperatorHourlyExcel);
+$('operatorTableWrap').addEventListener('change',e=>{
+  const target=e.target.closest('[data-hourly-goal-key]');
+  if(!target)return;
+  const key=decodeURIComponent(target.dataset.hourlyGoalKey||'');
+  const value=Math.max(0,Number(target.value)||0);
+  state.hourlyGoals[key]=value;
+  try{localStorage.setItem('tata_control_produccion_operator_goals_v1',JSON.stringify(state.hourlyGoals));}
+  catch(err){console.warn('No fue posible guardar la meta',err);}
+  renderOperatorHourlyTable();
+});
 loadCapacityConfig();
 loadStyleAcoples();
+loadOperatorHourlyGoals();
 loadData();
 
 </script>
