@@ -11667,6 +11667,17 @@ if (document.readyState === 'loading') {
 
     window.addEventListener("message", event => {
       if (!event.data || event.origin !== window.location.origin) return;
+      // Aceptar únicamente mensajes del selector de acoples embebido.
+      if (event.source !== getAcoplesFrame()?.contentWindow) return;
+      if (event.data.type === "ACOPLES_UPLOAD_PLAN") {
+        const file = event.data.file;
+        if (!file || typeof file.arrayBuffer !== "function" || !/\.(xlsx|xls|xlsm|csv)$/i.test(file.name || "")) {
+          event.source.postMessage({ type: "ACOPLES_PLAN_ERROR", error: "Selecciona un Excel (.xlsx/.xls/.xlsm) o CSV válido." }, event.origin);
+          return;
+        }
+        handlePlanFile({ target: { files: [file] } });
+        return;
+      }
       if (event.data.type === "ACOPLES_GALLI_MAP") {
         applyAcoplesGalliMap(event.data.map || {}, false);
         return;
@@ -12935,7 +12946,9 @@ if (document.readyState === 'loading') {
       if (!file) return;
 
       if (typeof XLSX === "undefined") {
-        document.getElementById("planStatus").textContent = "No se pudo cargar la librería para leer Excel. Revisa conexión a internet y vuelve a abrir el archivo.";
+        const message = "No se pudo cargar la librería para leer Excel. Revisa conexión a internet y vuelve a abrir el archivo.";
+        document.getElementById("planStatus").textContent = message;
+        getAcoplesFrame()?.contentWindow?.postMessage({type:"ACOPLES_PLAN_ERROR",error:message},window.location.origin);
         return;
       }
 
@@ -12957,9 +12970,16 @@ if (document.readyState === 'loading') {
 
           document.getElementById("planStatus").textContent = `Archivo importado: ${file.name}. Selecciona la hoja que quieras visualizar.`;
           loadPlanSheet(importedWorkbook.SheetNames[0]);
+          getAcoplesFrame()?.contentWindow?.postMessage({type:"ACOPLES_PLAN_SUCCESS",file:file.name},window.location.origin);
         } catch (error) {
           document.getElementById("planStatus").textContent = `No se pudo leer el archivo: ${error.message}`;
+          getAcoplesFrame()?.contentWindow?.postMessage({type:"ACOPLES_PLAN_ERROR",error:error.message},window.location.origin);
         }
+      };
+      reader.onerror = () => {
+        const message = "No se pudo leer el Excel de la proyección.";
+        document.getElementById("planStatus").textContent = message;
+        getAcoplesFrame()?.contentWindow?.postMessage({type:"ACOPLES_PLAN_ERROR",error:message},window.location.origin);
       };
       reader.readAsArrayBuffer(file);
     }
