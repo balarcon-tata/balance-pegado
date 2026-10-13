@@ -1669,7 +1669,7 @@ function renderOperatorHeatmap(orders){
   renderHeatmapLineOverlays(orders);
   drawHeatmapCanvas(pointsData);observeHeatmapResize(pointsData);
   $('heatmapLegend').innerHTML=Object.entries(heatmapZoneMeta).map(([key,m])=>`<button type="button" class="heatmap-zone-chip ${state.heatZone===key?'active':''}" data-heat-zone="${key}" style="--zone-color:${m.color}"><i></i>${esc(m.name)}</button>`).join('');
-  document.querySelectorAll('[data-heat-zone]').forEach(el=>el.addEventListener('click',()=>{state.heatZone=el.dataset.heatZone;state.hourlyZone=state.heatZone;renderOperatorHeatmap(orders);renderOperatorHourlyTable();}));
+  document.querySelectorAll('[data-heat-zone]').forEach(el=>el.addEventListener('click',()=>{state.heatZone=el.dataset.heatZone;state.hourlyZone=state.heatZone;renderOperatorBoard(buildRows());}));
   document.querySelectorAll('[data-heatmetric]').forEach(btn=>{btn.classList.toggle('active',btn.dataset.heatmetric===state.heatMetric);btn.onclick=()=>{state.heatMetric=btn.dataset.heatmetric;renderOperatorHeatmap(orders);};});
   let sel;
   if(state.line){
